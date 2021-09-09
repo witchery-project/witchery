@@ -26,6 +26,6 @@ RUN cp /home/builder/.abuild/*.pub /etc/apk/keys
 RUN witchery-compose -p ~builder/payloadout/payload*.apk -k /etc/apk/keys -X http://dl-cdn.alpinelinux.org/alpine/v3.14/main /root/outimg/
 
 # Copy the generated image to a new one.
-FROM scratch
+FROM kaniini/witchery-base:latest
 CMD ["/app/hello-world"]
 COPY --from=witchery /root/outimg/ .
