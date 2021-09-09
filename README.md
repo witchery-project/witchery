@@ -41,3 +41,13 @@ are available in the `examples/` directory.
 
 You need to have a signing key generated to sign the intermediary
 artifacts.  Use `abuild-keygen -na` to get one.
+
+## See Also
+
+* [alpine-make-rootfs](https://github.com/alpinelinux/alpine-make-rootfs),
+  build Alpine rootfs with an installation script.  Witchery's main difference
+  is that it can drive `abuild`, while alpine-make-rootfs requires dependencies
+  to be specified manually.
+
+* Google's [distroless](https://github.com/GoogleContainerTools/distroless) project,
+  same concept as witchery, but with glibc, and the bazel build system.
