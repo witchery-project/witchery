@@ -36,3 +36,8 @@ are available in the `examples/` directory.
 
 * **witchery-compose** - composes an image, given a set of APKs,
   package names, and repositories as inputs
+
+## Caveats
+
+You need to have a signing key generated to sign the intermediary
+artifacts.  Use `abuild-keygen -na` to get one.
