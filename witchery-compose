@@ -1,0 +1,64 @@
+#!/bin/sh -e
+
+# witchery-compose - build filesystem from APKs and package lists
+# Copyright (c) 2021 Ariadne Conill
+# SPDX-License-Identifier: ISC
+
+msg() {
+	echo "witchery-compose: $1"
+}
+
+error() {
+	echo "witchery-compose: $1" >&2
+	exit 1
+}
+
+usage() {
+	cat <<-EOF
+	usage: witchery-compose [-d dependency...] [options] OUTPUT
+
+	Composes an image from a dependency set into OUTPUT.
+
+	Options:
+		-d DEPENDENCY		Add DEPENDENCY to the dependency set.
+		-p PACKAGE		Add PACKAGE to the dependency set.
+		-X REPO			Add REPO to the repo list.
+		-k KEYS-DIR		Use KEYS-DIR for keys.
+		-i			Skip signature verification.
+		-h			Display this message.
+	EOF
+	exit 0
+}
+
+buildit() {
+	WORKDIR=$(mktemp -d)
+	OUTDIR=$(realpath $1)
+
+	msg "Using $WORKDIR as temporary directory."
+
+	/sbin/apk add --initdb --root $WORKDIR $WITCHERY_APK_OPTS $WITCHERY_DEPS
+
+	msg "Using $OUTDIR as output directory."
+
+	mkdir -p "$OUTDIR"
+	tar -c -C "$WORKDIR" . | tar -x -C "$OUTDIR"
+
+	msg "Cleaning up image."
+	rm -rf "$OUTDIR"/lib/apk/ "$OUTDIR"/etc/apk/ "$OUTDIR"/var/cache/apk/
+}
+
+while getopts "d:p:X:k:ih" opt; do
+	case $opt in
+	'd')	WITCHERY_DEPS="$WITCHERY_DEPS $OPTARG" ;;
+	'p')	PKG=$(realpath $OPTARG); WITCHERY_DEPS="$WITCHERY_DEPS $PKG" ;;
+	'X')	WITCHERY_APK_OPTS="$WITCHERY_APK_OPTS -X $OPTARG" ;;
+	'k')	WITCHERY_APK_OPTS="$WITCHERY_APK_OPTS --keys-dir $OPTARG" ;;
+	'i')	WITCHERY_APK_OPTS="$WITCHERY_APK_OPTS --allow-untrusted" ;;
+	'h')	usage ;;
+	esac
+done
+shift $(( $OPTIND - 1 ))
+
+[ -z "$1" ] && usage
+
+buildit $1
