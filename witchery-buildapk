@@ -1,0 +1,114 @@
+#!/bin/sh -e
+
+# witchery-buildapk - build APK from a filesystem
+# Copyright (c) 2021 Ariadne Conill
+# SPDX-License-Identifier: ISC
+
+[ -z "$WITCHERY_ARCH" ] && WITCHERY_ARCH=$(abuild -A)
+[ -z "$SOURCE_DATE_EPOCH" ] && SOURCE_DATE_EPOCH=$(date '+%s')
+export SOURCE_DATE_EPOCH
+
+usage() {
+	cat <<-EOF
+	usage: witchery-buildapk -n pkgname [options] DIR OUTPUT
+
+	Builds package from artifacts located in DIR, copied to OUTPUT.
+
+	Options:
+		-n pkgname		Sets package name
+		-v pkgver		Sets package version (default UNIX epoch)
+		-r pkgrel		Sets package release (default 0)
+		-d description		Sets package description
+		-l license		Sets package license
+		-m maintainer		Sets package maintainer
+		-h			Display help
+	EOF
+	exit 0
+}
+
+msg() {
+	echo "witchery-buildapk: $1"
+}
+
+setup_environment() {
+	WORKDIR=$(mktemp -d)/witchery/"$WITCHERY_PKGNAME"
+
+	mkdir -p $WORKDIR
+
+	msg "Using $WORKDIR as working directory."
+	cd $WORKDIR
+
+	cat >"$WORKDIR"/APKBUILD <<-EOF
+	# Maintainer: $WITCHERY_MAINTAINER
+	pkgname=$WITCHERY_PKGNAME
+	pkgver=$WITCHERY_PKGVER
+	pkgrel=$WITCHERY_PKGREL
+	pkgdesc="$WITCHERY_DESCRIPTION"
+	license="$WITCHERY_LICENSE"
+
+	prepare() {
+		:
+	}
+
+	build() {
+		:
+	}
+
+	check() {
+		:
+	}
+
+	package() {
+		:
+	}
+	EOF
+}
+
+buildit() {
+	mkdir -p $2
+
+	WITCHERY_FILESYSTEM=$(realpath $1)
+	WITCHERY_OUTPUT=$(realpath $2)
+
+	msg "Building the following:"
+	msg "  Package: $WITCHERY_PKGNAME $WITCHERY_PKGVER-r$WITCHERY_PKGREL"
+	msg "  Source Directory: $WITCHERY_FILESYSTEM"
+
+	setup_environment
+
+	mkdir -p "$WORKDIR"/pkg "$WORKDIR"/out
+	cp -ar "$WITCHERY_FILESYSTEM" "$WORKDIR"/pkg/"$WITCHERY_PKGNAME"
+
+	msg "Invoking abuild to generate an APK."
+	abuild -P "$WORKDIR"/out prepare_package create_apks
+
+	mv "$WORKDIR"/out/witchery/"$WITCHERY_ARCH"/"$WITCHERY_PKGNAME"*.apk "$WITCHERY_OUTPUT"/
+
+	rm -rf $WORKDIR
+
+	msg "Generated APK available in $WITCHERY_OUTPUT"
+}
+
+while getopts "n:v:r:d:l:m:h" opt; do
+	case $opt in
+	'n')	WITCHERY_PKGNAME=$OPTARG ;;
+	'v')	WITCHERY_PKGVER=$OPTARG ;;
+	'r')	WITCHERY_PKGREL=$OPTARG ;;
+	'd')	WITCHERY_DESCRIPTION=$OPTARG ;;
+	'l')	WITCHERY_LICENSE=$OPTARG ;;
+	'm')	WITCHERY_MAINTAINER=$OPTARG ;;
+	'h')	usage ;;
+	esac
+done
+shift $(( $OPTIND - 1 ))
+
+[ -z "$WITCHERY_PKGNAME" ] && usage
+[ -z "$WITCHERY_PKGVER" ] && WITCHERY_PKGVER=$SOURCE_DATE_EPOCH
+[ -z "$WITCHERY_PKGREL" ] && WITCHERY_PKGREL=0
+[ -z "$WITCHERY_DESCRIPTION" ] && WITCHERY_DESCRIPTION='package generated with witchery-buildapk'
+[ -z "$WITCHERY_LICENSE" ] && WITCHERY_LICENSE="Unspecified"
+[ -z "$WITCHERY_MAINTAINER" ] && WITCHERY_MAINTAINER="Witchery <https://github.com/kaniini/witchery>"
+[ -z $1 ] && usage
+[ -z $2 ] && usage
+
+buildit $1 $2
