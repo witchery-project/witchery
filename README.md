@@ -28,3 +28,11 @@ simplify the process of gathering dependencies.
 
 Witchery is designed to be easy to use with Docker.  Some examples
 are available in the `examples/` directory.
+
+## Tools
+
+* **witchery-buildapk** - builds an APK out of an arbitrary
+  filesystem
+
+* **witchery-compose** - composes an image, given a set of APKs,
+  package names, and repositories as inputs
