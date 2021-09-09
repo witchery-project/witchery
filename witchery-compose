@@ -31,6 +31,8 @@ usage() {
 }
 
 buildit() {
+	mkdir -p $1
+
 	WORKDIR=$(mktemp -d)
 	OUTDIR=$(realpath $1)
 
@@ -40,7 +42,6 @@ buildit() {
 
 	msg "Using $OUTDIR as output directory."
 
-	mkdir -p "$OUTDIR"
 	tar -c -C "$WORKDIR" . | tar -x -C "$OUTDIR"
 
 	msg "Cleaning up image."
